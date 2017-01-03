@@ -111,9 +111,10 @@ static const CGFloat iPhoneScreenPortraitWidth = 320.f;
 @property (nonatomic, strong) UISwipeGestureRecognizer* rightSwipeGestureRecognizer;
 
 #pragma mark - Properties
-@property (strong, nonatomic) NSMutableDictionary* subtitlesParts;
+@property (strong, nonatomic) NSMutableArray* subtitlesParts;
 @property (strong, nonatomic) NSTimer* subtitleTimer;
 @property (strong, nonatomic) UILabel* subtitleLabel;
+@property (nonatomic, assign) BOOL subtitleActivated;
 
 #pragma mark - Private methods
 - (void)showSubtitles:(BOOL)show;
@@ -165,8 +166,12 @@ static const CGFloat iPhoneScreenPortraitWidth = 320.f;
     [self getClosedCaptioningFileAtURL:URLString
                              completion:^(BOOL finished) {
                                  // Activate subtitles
-                                 [self showSubtitles];
-                                 
+                                 if (self.subtitleActivated) {
+                                     [self showSubtitles];
+                                 }
+                                 else{
+                                     [self hideSubtitles];
+                                 }
                                  // Analytics SHOW TRANSCRIPT
                                  [self analyticsShowTranscript];
                              } failure:^(NSError* error) {
@@ -178,17 +183,19 @@ static const CGFloat iPhoneScreenPortraitWidth = 320.f;
     NSURLSessionDownloadTask* task = note.userInfo[DL_COMPLETE_N_TASK];
     NSURL* taskURL = task.response.URL;
     NSString* captionURL = self.video.summary.transcripts[[OEXInterface getCCSelectedLanguage]];
+    if (!captionURL) {
+        captionURL = self.video.summary.transcripts.allValues.firstObject;
+    }
     BOOL downloadedCaption = [taskURL.absoluteString isEqualToString:captionURL];
     if (downloadedCaption) {
         [self activateSubTitles:captionURL];
     }
-
 }
 
-- (void) setCaption:(NSString*)language {
+- (void) setCaption:(NSString*)language{
     [self hideTables];
     
-    if ([language isEqualToString:[OEXInterface getCCSelectedLanguage]]) {
+    if ([language isEqualToString:@""]) {
         //Cancel by selecting the same language again
         
         [OEXInterface setCCSelectedLanguage:@""];
@@ -207,6 +214,7 @@ static const CGFloat iPhoneScreenPortraitWidth = 320.f;
     
     NSString* captionURL = self.video.summary.transcripts[language];
     if (captionURL) {
+        self.subtitleActivated = YES;
         [self activateSubTitles:captionURL];
         // Set the language to persist
         [OEXInterface setCCSelectedLanguage:language];
@@ -324,7 +332,7 @@ static const CGFloat iPhoneScreenPortraitWidth = 320.f;
     NSScanner* scanner = [NSScanner scannerWithString:string];
 
     // Subtitles parts
-    self.subtitlesParts = [NSMutableDictionary dictionary];
+    self.subtitlesParts = [NSMutableArray array];
 
     // Search for members
     while(!scanner.isAtEnd) {
@@ -376,12 +384,14 @@ static const CGFloat iPhoneScreenPortraitWidth = 320.f;
             kEnd : @(endInterval),
             kText : textString ? textString : @""
         };
-        [self.subtitlesParts setObject:tempInterval
-                                forKey:indexString];
+        [self.subtitlesParts insertObject:tempInterval atIndex:[indexString integerValue]];
     }
 
     if(completion != NULL) {
         completion(YES, nil);
+        if([self.delegate respondsToSelector:@selector(transcriptLoaded:)]){
+            [self.delegate transcriptLoaded:self.subtitlesParts];
+        }
     }
 }
 
@@ -401,14 +411,14 @@ static const CGFloat iPhoneScreenPortraitWidth = 320.f;
 }
 
 - (void)searchAndDisplaySubtitle {
-    if(![OEXInterface getCCSelectedLanguage]) {
+    if(![OEXInterface getCCSelectedLanguage] || !self.subtitleActivated) {
         return;
     }
 
     // Search for timeInterval
     @autoreleasepool {
         NSPredicate* initialPredicate = [NSPredicate predicateWithFormat:@"(%@ >= %K) AND (%@ <= %K)", @(self.moviePlayer.currentPlaybackTime), kStart, @(self.moviePlayer.currentPlaybackTime), kEnd];
-        NSArray *array = [[NSArray alloc] initWithArray:[self.subtitlesParts allValues]];
+        NSArray *array = [[NSArray alloc] initWithArray:self.subtitlesParts];
         NSArray* objectsFound = [array filteredArrayUsingPredicate:initialPredicate];
         NSDictionary* lastFounded = (NSDictionary*)[objectsFound lastObject];
         // Show text
@@ -488,6 +498,22 @@ static const CGFloat iPhoneScreenPortraitWidth = 320.f;
         self.subtitleLabel.layer.rasterizationScale = [[UIScreen mainScreen] scale];
         self.subtitleLabel.layer.cornerRadius = 5;
         [self addSubview:self.subtitleLabel];
+        
+        NSString *ccSelectedLanguage = [OEXInterface getCCSelectedLanguage];
+        NSString* captionURL = self.video.summary.transcripts[ccSelectedLanguage];
+        if(ccSelectedLanguage && ![ccSelectedLanguage isEqualToString:@""] && captionURL) {
+            self.subtitleActivated = YES;
+            [self setCaption:ccSelectedLanguage];
+        }
+        else{
+            if (captionURL == nil) {
+                captionURL = self.video.summary.transcripts.allValues.firstObject;
+            }
+            if (captionURL) {
+                self.subtitleActivated = NO;
+                [self activateSubTitles:captionURL];
+            }
+        }
     }
 
     CGFloat fontSize = 0.0;
@@ -534,11 +560,11 @@ static const CGFloat iPhoneScreenPortraitWidth = 320.f;
 
 #pragma mark - Others
 
-- (void)setSubtitlesParts:(NSMutableDictionary*)subtitlesParts {
+- (void)setSubtitlesParts:(NSMutableArray*)subtitlesParts {
     objc_setAssociatedObject(self, @"subtitlesParts", subtitlesParts, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
-- (NSMutableDictionary*)subtitlesParts {
+- (NSMutableArray*)subtitlesParts {
     return objc_getAssociatedObject(self, @"subtitlesParts");
 }
 

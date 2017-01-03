@@ -380,6 +380,12 @@
     }
 }
 
+- (void)transcriptLoaded:(NSArray *)transcript {
+    if([self.delegate respondsToSelector:@selector(transcriptLoaded:)]) {
+        [self.delegate transcriptLoaded:transcript];
+    }
+}
+
 - (BOOL)prefersStatusBarHidden {
     return [self.moviePlayerController isFullscreen];
 }
