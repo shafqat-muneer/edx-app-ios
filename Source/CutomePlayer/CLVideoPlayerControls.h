@@ -105,6 +105,10 @@ extern NSString* const CLVideoPlayerkText;
  */
 @property (nonatomic, readonly, getter = isShowing) BOOL showing;
 
+/**
+ Checks if the parent viewController is at the top of the stack
+ */
+@property (nonatomic) BOOL isVisibile;
 
 /// Are the next/previous buttons hidden
 @property (assign, nonatomic) BOOL hidesNextPrev;
