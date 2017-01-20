@@ -25,7 +25,7 @@ class FirebaseAnalyticsTracker: NSObject {
         FIRAnalytics.logEventWithName(formattedKeyForFirebase(eventName), parameters: formattedParameters)
         
         var CSV = ""
-        CSV = CSV + "," + eventName
+        CSV = CSV + eventName
         CSV = CSV + "," + formattedKeyForFirebase(eventName)
         for (key, value) in formattedParameters {
             CSV = CSV + "," + key + "=" + String(value)
