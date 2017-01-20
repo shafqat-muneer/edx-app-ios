@@ -23,6 +23,12 @@ class FirebaseAnalyticsTracker: NSObject {
         
         formatParamatersForFirebase(parameters, formattedParams: &formattedParameters)
         FIRAnalytics.logEventWithName(formattedKeyForFirebase(eventName), parameters: formattedParameters)
+        
+        var CSV = formattedKeyForFirebase(eventName)
+        for (key, value) in formattedParameters {
+            CSV = CSV + "," + key + "=" + String(value)
+        }
+        NSLog("FIREBASE-EVENT-CSV-START<<<%@>>>FIREBASE-EVENT-CSV-END", CSV);
     }
     
     private func formatParamatersForFirebase(params: [String : NSObject], inout formattedParams: [String: NSObject]) {

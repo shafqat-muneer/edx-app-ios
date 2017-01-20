@@ -79,9 +79,9 @@ class SegmentAnalyticsTracker : NSObject, OEXAnalyticsTracker {
         
         SEGAnalytics.sharedAnalytics().screen(screenName, properties: properties)
         
-        if OEXConfig.sharedConfig().isFirebaseEnabled {
-            firebaseTracker.trackEventWithName(screenName, parameters: properties)
-        }
+       // if OEXConfig.sharedConfig().isFirebaseEnabled {
+      //      firebaseTracker.trackEventWithName(screenName, parameters: properties)
+       // }
         
         // adding additional info to event
         if let info = info where info.count > 0 {
