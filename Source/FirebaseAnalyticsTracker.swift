@@ -26,10 +26,17 @@ class FirebaseAnalyticsTracker: NSObject {
         
         var CSV = ""
         CSV = CSV + eventName
-        CSV = CSV + "," + formattedKeyForFirebase(eventName)
-        for (key, value) in formattedParameters {
-            CSV = CSV + "," + key + "=" + String(value)
+        CSV = CSV + ",,," + formattedKeyForFirebase(eventName)
+        
+        let pNameList = ["name", "course_id", "module_id", "action", "topic_id", "thread_id", "response_id", "search_string", "method", "current_time", "language", "component", "device_orientation", "code", "app_name"]
+        for pName in pNameList {
+            if let pNameValue = formattedParameters[pName] {
+                CSV = CSV + "," + pName + "," + String(pNameValue)
+            } else {
+                CSV = CSV + ",,"
+            }
         }
+
         NSLog("FIREBASE-EVENT-CSV-START<<<%@>>>FIREBASE-EVENT-CSV-END", CSV);
         // print("FIREBASE-EVENT-CSV-START<<<" + CSV + ">>>FIREBASE-EVENT-CSV-END")
     }
